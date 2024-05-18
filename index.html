@@ -1,0 +1,260 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>CosineDJ</title>
+</head>
+<body>
+<h1>CosineDJ</h1>
+<div id=divpattern></div><br>
+<button id="btnplay">play</button>
+<button id="btnstop">stop</button>
+<br>
+<br>
+<table>
+<tr><th>low pass filter:</th><td><input type="range" id="rangelowpass" min="0" max="1" step="0.001" value="1"></td><td id=tdlowpass></td></tr>
+<tr><th>distortion filter:</th><td><input type="range" id="rangedistortion" min="0" max="1" step="0.001" value="0"></td><td id=tddistortion></td></tr>
+<!--<tr><th>reverb filter:</th><td><input type="range" id="rangereverb" min="0" max="1" step="0.001" value="0"></td><td id=tdreverb></td></tr>-->
+<!--<tr><td>pitch shifter:</th><td><input type="range" id="rangepitch" min="0" max="1" step="0.001" value="0"></td><td id=tdpitch></td></tr>-->
+</table><br>
+<label><input type="checkbox" id=chkauto checked>filter auto</label>
+<hr>
+<a href="https://github.com/code4fukui/cosine-dj">src on GitHub</a>
+
+<style>
+body {
+  font-family: sans-serif;
+  text-align: center;
+}
+table {
+  display: inline-block;
+}
+#divpattern {
+  display: inline-block;
+  border: .2em solid black;
+  padding: .3em;
+  margin: .5em;
+}
+a {
+  color: gray !important;
+}
+</style>
+
+<script src="https://unpkg.com/tone"></script>
+<script type="module">
+//import { Tone } from "https://taisukef.github.io/Tone.js/Tone.mjs";
+
+const patterns = [
+  "10101010",
+  "11111111",
+  "01000100",
+];
+
+for (let i = 0; i < 3; i++) {
+  for (let j = 0; j < 8; j++) {
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    divpattern.appendChild(chk);
+    chk.checked = patterns[i][j] == "1";
+  }
+  divpattern.appendChild(document.createElement("br"));
+}
+
+const setEnabledPatterns = (b) => {
+  const chks = divpattern.querySelectorAll("input");
+  chks.forEach(i => i.disabled = !b);
+};
+const getPatterns = () => {
+  const chks = divpattern.querySelectorAll("input");
+  const res = [];
+  let idx = 0;
+  for (let i = 0; i < 3; i++) {
+    const ss = [];
+    for (let j = 0; j < 8; j++) {
+      ss.push(chks[idx++].checked ? "1" : "0");
+    }
+    res.push(ss.join(""));
+  }
+  return res;
+};
+
+export class ToneBase {
+  play(time) {
+    if (this.note == null) {
+      this.tone.triggerAttackRelease(this.duration, time);
+    } else {
+      this.tone.triggerAttackRelease(this.note, this.duration, time);
+    }
+  }
+  setLoop(pattern) {
+    const ptn = pattern.split("");
+    this.loop = new Tone.Sequence((time, p) => {
+      if (p == "1") {
+        this.play(time);
+      }
+    }, ptn, this.duration).start(0);
+  }
+  clearLoop() {
+    this.loop.stop();
+    this.loop.dispose();
+  }
+  connect(filter) {
+    this.tone.connect(filter);
+  }
+}
+
+export class ToneKick extends ToneBase { // Kick Drum
+  constructor(dest, note = "C1") {
+    super();
+    this.tone = new Tone.MembraneSynth({
+      pitchDecay: 0.05,
+      octaves: 10,
+      oscillator: {
+        type: "sine"
+      },
+      envelope: {
+        attack: 0.001,
+        decay: 0.4,
+        sustain: 0.01,
+        release: 1.4,
+        attackCurve: "exponential"
+      }
+    });
+    if (dest) {
+      this.tone.connect(dest);
+    } else {
+      this.tone.toDestination();
+    }
+    this.note = note;
+    this.duration = "8n";
+  }
+}
+
+export class ToneHihat extends ToneBase { // Hihat
+  constructor(dest, note = "C#4") {
+    super();
+    this.tone = new Tone.MetalSynth({
+      frequency: 200,
+      envelope: {
+        attack: 0.001,
+        decay: 0.1,
+        release: 0.1
+      },
+      harmonicity: 5.1,
+      modulationIndex: 32,
+      resonance: 4000,
+      octaves: 1.5
+    });
+    if (dest) {
+      this.tone.connect(dest);
+    } else {
+      this.tone.toDestination();
+    }
+    this.note = note;
+    this.duration = "8n";
+  }
+}
+
+export class ToneSnare extends ToneBase {
+  constructor(dest) {
+    super();
+    this.tone = new Tone.NoiseSynth({
+      noise: {
+        type: "white"
+      },
+      envelope: {
+        attack: 0.001,
+        decay: 0.2,
+        sustain: 0
+      }
+    });
+    if (dest) {
+      this.tone.connect(dest);
+    } else {
+      this.tone.toDestination();
+    }
+    this.duration = "8n";
+  }
+}
+
+btnplay.onclick = () => {
+  btnplay.disabled = true;
+  setEnabledPatterns(false);
+  const patterns = getPatterns();
+
+  // filter
+  const filterdist = new Tone.Distortion(0).toDestination();
+  //const filterreverb = new Tone.Reverb({ decay: 0.01, preDelay: 0.001 }).connect(filterdist);
+  //const filter = new Tone.Filter(20000, "lowpass").connect(filterreverb);
+  //const filterpitch = new Tone.PitchShift().connect(filterdist);
+  //const filter = new Tone.Filter(20000, "lowpass").connect(filterpitch);
+  const filter = new Tone.Filter(20000, "lowpass").connect(filterdist);
+  const synth = new Tone.Synth().connect(filter);
+
+  rangelowpass.oninput = (e) => {
+    const n = rangelowpass.value;
+    const min = 100;
+    const max = 20000;
+    const freq = min + (Math.pow(2, n) - 1) * (max - min);
+    filter.frequency.value = freq;
+    tdlowpass.textContent = Math.floor(freq) + "Hz";
+  };
+  rangedistortion.oninput = (e) => {
+    filterdist.distortion = rangedistortion.value;
+    tddistortion.textContent = parseFloat(rangedistortion.value).toFixed(2);
+  };
+  /*
+  rangepitch.oninput = (e) => {
+    filterpitch.pitch = rangepitch.value * 12;
+    tdpitch.textContent = parseFloat(filterpitch.pitch).toFixed(2);
+  };
+  */
+  let tauto = null;
+  chkauto.oninput = () => {
+    if (tauto) {
+      clearInterval(tauto);
+      tauto = null;
+    } else {
+      tauto = setInterval(() => {
+        const t = Tone.now();
+        rangelowpass.value = (Math.cos(t / 11) / 2) + .5;
+        rangelowpass.oninput();
+        rangedistortion.value = (-Math.cos(t / 7) / 2) + .5;
+        rangedistortion.oninput();
+      }, 100)
+    }
+  };
+  if (chkauto.checked) {
+    chkauto.oninput();
+  }
+
+  const tones = [
+    new ToneKick(filter),
+    new ToneHihat(filter),
+    new ToneSnare(filter),
+  ];
+
+  const tempo = 150;
+  const nptn = patterns[0].length;
+  const dt = 60 / tempo / 2 * nptn;
+  const now = Tone.now();
+  const duration = 60;
+  for (let i = 0; i < tones.length; i++) {
+    const tone = tones[i];
+    const pattern = patterns[i];
+    tone.setLoop(pattern);
+  }
+  Tone.start();
+  Tone.Transport.start();
+
+  btnstop.onclick = () => {
+    setEnabledPatterns(true);
+    tones.forEach(tone => tone.clearLoop());
+    Tone.Transport.stop();
+    btnplay.disabled = false;
+    if (tauto) {
+      clearInterval(tauto);
+      tauto = null;
+    }
+  };
+};
+</script>
+</body>
+</html>
