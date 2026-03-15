@@ -1,5 +1,7 @@
 # CosineDJ
 
+> 日本語のREADMEはこちらです: [README.ja.md](README.ja.md)
+
 CosineDJ is a browser-based drum machine built using the Tone.js library.
 
 ## Demo
