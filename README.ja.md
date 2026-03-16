@@ -1,6 +1,6 @@
 # CosineDJ
 
-CosineDJは、ブラウザ上で動作するドラムマシンアプリです。Tone.jsライブラリを使用して実装されています。
+CosineDJは、ブラウザ上で動作するドラムマシンアプリです。Tone.jsライブラリを使って実装されています。
 
 ## デモ
 [CosineDJ](https://code4fukui.github.io/cosine-dj/)で実際に試すことができます。

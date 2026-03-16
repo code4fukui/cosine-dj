@@ -20,4 +20,4 @@ You can try the live demo at https://code4fukui.github.io/cosine-dj/
 4. Click the "stop" button to stop the pattern.
 
 ## License
-This project is licensed under the MIT License.
+MIT License — see [LICENSE](LICENSE).
